@@ -1,0 +1,10 @@
+{
+	"name":"combinatorgraph",
+	"author":"justarandomgeek",
+	"version":"0.14.0",
+	"title":"Combinator Graph Generator",
+	"homepage":"",
+	"description":"Generates a graphviz diagram for the selected combinator circuits.",
+	"dependencies": ["base"],
+  "factorio_version": "0.14"
+}
