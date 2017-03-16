@@ -43,6 +43,27 @@ local function InserterLabel(control)
   )
 end
 
+local function RoboportLabel(control)
+  if control.mode_of_operations == defines.control_behavior.roboport.circuit_mode_of_operation.read_logistics then
+    return "Read Logistics"
+  elseif control.mode_of_operations == defines.control_behavior.roboport.circuit_mode_of_operation.read_robot_stats then
+    return string.format('{Avail. Log.|%s}|{Total Log.|%s}|{Avail. Con.|%s}|{Total Con.|%s}',
+      control.available_logistic_output_signal and control.available_logistic_output_signal.name,
+      control.total_logistic_output_signal and control.total_logistic_output_signal.name,
+      control.available_construction_output_signal and control.available_construction_output_signal.name,
+      control.total_construction_output_signal and control.total_construction_output_signal.name
+    )
+  end
+end
+
+local function LogisticContainerLabel(control)
+  if control.circuit_mode_of_operation == defines.control_behavior.logistic_container.circuit_mode_of_operation.send_contents then
+    return "Read Contents"
+  elseif control.circuit_mode_of_operation == defines.control_behavior.logistic_container.circuit_mode_of_operation.set_requests then
+    return "Set Requests"
+  end
+end
+
 local function EntityLabel(ent)
   local control = ent.get_or_create_control_behavior()
   if ent.type == "arithmetic-combinator" then
@@ -101,8 +122,24 @@ local function EntityLabel(ent)
       ent.name,
       control.send_to_train and "On" or "Off"
     )
+  elseif ent.type == "roboport" then
+    return string.format('{%s|%s}',
+      ent.name,
+      RoboportLabel(control)
+    )
+  elseif ent.type == "logistic-container" then
+    return string.format('{%s|%s}',
+      ent.name,
+      LogisticContainerLabel(control)
+    )
+  elseif ent.type == "container" then
+    return string.format('{%s|%s}',
+      ent.name,
+      "Read Contents"
+    )
   else
     --TODO: accus don't report the output signal
+    --TODO: rail signals don't report any info
     return string.format('{%s|%s}',
       ent.type,
       ent.name
