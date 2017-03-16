@@ -19,6 +19,30 @@ local function ConditionLabel(condition)
   )
 end
 
+local function InserterLabel(control)
+
+  local condlabel = "No Condition"
+  if control.circuit_mode_of_operation == defines.control_behavior.inserter.circuit_mode_of_operation.enable_disable then
+    condlabel = ConditionLabel(control.circuit_condition.condition)
+  elseif control.circuit_mode_of_operation == defines.control_behavior.inserter.circuit_mode_of_operation.set_filters then
+    condlabel = "Set Filters"
+  end
+
+  local readlabel = "Off"
+  if control.circuit_read_hand_contents then
+    if control.circuit_hand_read_mode == defines.control_behavior.inserter.hand_read_mode.pulse then
+      readlabel = "Pulse"
+    elseif control.circuit_hand_read_mode == defines.control_behavior.inserter.hand_read_mode.pulse then
+      readlabel = "Hold"
+    end
+  end
+
+  return string.format('%s|{Read Hand|%s}',
+    condlabel,
+    readlabel
+  )
+end
+
 local function EntityLabel(ent)
   local control = ent.get_or_create_control_behavior()
   if ent.type == "arithmetic-combinator" then
@@ -48,7 +72,37 @@ local function EntityLabel(ent)
       control.use_colors and "On" or "Off",
       ConditionLabel(control.circuit_condition.condition)
     )
+  elseif ent.type == "power-switch" or
+    ent.type == "pump" or
+    ent.type == "offshore-pump" then
+    return string.format('{%s|%s}',
+      ent.name,
+      ConditionLabel(control.circuit_condition.condition)
+    )
+  elseif ent.type == "wall" then
+    return string.format('{%s|%s}',
+      ent.name,
+      ConditionLabel(control.circuit_condition.condition)
+      --TODO: walls don't report output signals
+    )
+  elseif ent.type == "transport-belt" then
+    return string.format('{%s|%s}',
+      ent.name,
+      ConditionLabel(control.circuit_condition.condition)
+      --TODO: belts don't report read modes
+    )
+  elseif ent.type == "inserter" then
+    return string.format('{%s|%s}',
+      ent.name,
+      InserterLabel(control)
+    )
+  elseif ent.type == "train-stop" then
+    return string.format('{%s|{Send to Train|%s}}',
+      ent.name,
+      control.send_to_train and "On" or "Off"
+    )
   else
+    --TODO: accus don't report the output signal
     return string.format('{%s|%s}',
       ent.type,
       ent.name
@@ -67,19 +121,24 @@ local function WirePort(ent,port)
     local ports={"w","e"}
     return ports[port]
   else
-    return "w"
+    return "_"
   end
 end
 
 local function GraphCombinators(ents)
   local gv = {
     "graph combinators {",
-    'graph[ranksep=1.5 nodesep=1 newrank="true"];',
+    'graph[nodesep=0.5 overlap="prism" splines="spline" sep=0.3];',
   }
   local donelist = {}
   for _,ent in pairs(ents) do
     if ent.circuit_connection_definitions and #ent.circuit_connection_definitions > 0 then
-      gv[#gv+1] = string.format('%d [shape=record label="%s"];',ent.unit_number,EntityLabel(ent))
+      gv[#gv+1] = string.format('%d [shape=record label="%s" pos="%d,%d"];',
+        ent.unit_number,
+        EntityLabel(ent),
+        ent.position.x,
+        ent.position.y
+      )
 
       for _,conn in pairs(ent.circuit_connection_definitions) do
         if not (
