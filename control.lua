@@ -37,6 +37,8 @@ local function InserterLabel(control)
     end
   end
 
+  -- TODO: no way to get "Set stack size" setting/signal
+
   return string.format('%s|{Read Hand|%s}',
     condlabel,
     readlabel
@@ -66,85 +68,164 @@ end
 
 local function EntityLabel(ent)
   local control = ent.get_or_create_control_behavior()
-  if ent.type == "arithmetic-combinator" then
-    return string.format('<1>|{%s|{%s|%s|%s}|%s}|<2>',
-      ent.name,
-      control.parameters.parameters.first_signal.name,
-      control.parameters.parameters.operation,
-      control.parameters.parameters.second_signal and control.parameters.parameters.second_signal.name or control.parameters.parameters.constant,
-      control.parameters.parameters.output_signal.name
+  if not control then
+    return string.format('{%s|%s}',
+      ent.type,
+      ent.name
     )
-  elseif ent.type == "decider-combinator" then
-    return string.format('<1>|{%s|%s|{%s|%s}}|<2>',
+  elseif control.type == defines.control_behavior.type.container or
+    control.type == defines.control_behavior.type.storage_tank then
+    return string.format('{%s|%s}',
       ent.name,
-      ConditionLabel(control.parameters.parameters),
-      control.parameters.parameters.output_signal.name,
-      control.parameters.parameters.copy_count_from_input and "=input" or "=1"
+      "Read Contents"
     )
-  elseif ent.type == "constant-combinator" then
-    return string.format('{%s|%s|%s}',
+  elseif control.type == defines.control_behavior.type.generic_on_off then
+    return string.format('{%s|%s}',
       ent.name,
-      control.enabled and "On" or "Off",
-      table.concat(CCDataLabels(control),"|")
+      ConditionLabel(control.circuit_condition.condition)
     )
-  elseif ent.type == "lamp" then
+  elseif control.type == defines.control_behavior.type.inserter then
+    return string.format('{%s|%s}',
+      ent.name,
+      InserterLabel(control)
+    )
+  elseif control.type == defines.control_behavior.type.lamp then
     return string.format('{%s|{Use Colors|%s}|%s}',
       ent.name,
       control.use_colors and "On" or "Off",
       ConditionLabel(control.circuit_condition.condition)
     )
-  elseif ent.type == "power-switch" or
-    ent.type == "pump" or
-    ent.type == "offshore-pump" then
+  elseif control.type == defines.control_behavior.type.logistic_container then
     return string.format('{%s|%s}',
       ent.name,
-      ConditionLabel(control.circuit_condition.condition)
+      LogisticContainerLabel(control)
     )
-  elseif ent.type == "wall" then
+  elseif control.type == defines.control_behavior.type.roboport then
     return string.format('{%s|%s}',
       ent.name,
-      ConditionLabel(control.circuit_condition.condition)
-      --TODO: walls don't report output signals
+      RoboportLabel(control)
     )
-  elseif ent.type == "transport-belt" then
+  elseif control.type == defines.control_behavior.type['train-stop'] then
+    return string.format('{%s|{Send to Train|%s}|{Read from Train|%s}}',
+      ent.name,
+      control.send_to_train and "On" or "Off",
+      control.read_from_train and "On" or "Off"
+      --TODO: missing condition
+    )
+  elseif control.type == defines.control_behavior.type.decider_combinator then
+    return string.format('<1>\\>|{%s|%s|{%s|%s}}|<2>\\>',
+      ent.name,
+      ConditionLabel(control.parameters.parameters),
+      control.parameters.parameters.output_signal.name,
+      control.parameters.parameters.copy_count_from_input and "=input" or "=1"
+    )
+  elseif control.type == defines.control_behavior.type.arithmetic_combinator then
+    local op = control.parameters.parameters.operation
+    if op == ">>" then op = "\\>\\>" end
+    if op == "<<" then op = "\\<\\<" end
+    return string.format('<1>\\>|{%s|{%s|%s|%s}|%s}|<2>\\>',
+      ent.name,
+      control.parameters.parameters.first_signal.name,
+      op,
+      control.parameters.parameters.second_signal and control.parameters.parameters.second_signal.name or control.parameters.parameters.constant,
+      control.parameters.parameters.output_signal.name
+    )
+  elseif control.type == defines.control_behavior.type.constant_combinator then
+    return string.format('{%s|%s|%s}',
+      ent.name,
+      control.enabled and "On" or "Off",
+      table.concat(CCDataLabels(control),"|")
+    )
+  elseif control.type == defines.control_behavior.type.transport_belt then
     return string.format('{%s|%s}',
       ent.name,
       ConditionLabel(control.circuit_condition.condition)
       --TODO: belts don't report read modes
     )
-  elseif ent.type == "inserter" then
-    return string.format('{%s|%s}',
+  elseif control.type == defines.control_behavior.type.accumulator then
+    return string.format('{%s|{Read charge level|%s}}',
       ent.name,
-      InserterLabel(control)
+      control.output_signal and control.output_signal.name
     )
-  elseif ent.type == "train-stop" then
-    return string.format('{%s|{Send to Train|%s}}',
+  --elseif control.type == defines.control_behavior.type.rail_signal then
+    --TODO: rail signals report nothing...
+  elseif control.type == 15 then --TODO: Wall
+    local label = ''
+    if control.open_gate then
+      label = label .. '|' .. ConditionLabel(control.circuit_condition.condition)
+    end
+    if control.read_sensor then
+      label = label .. string.format('|{Read Sensor|%s}',
+        control.output_signal and control.output_signal.name
+        )
+    end
+    return string.format('{%s%s}',
       ent.name,
-      control.send_to_train and "On" or "Off"
+      label
     )
-  elseif ent.type == "roboport" then
-    return string.format('{%s|%s}',
+  elseif control.type == 16 then --TODO: MiningDrill
+    local label = ''
+    if control.circuit_enable_disable then
+      label = label .. '|' .. ConditionLabel(control.circuit_condition.condition)
+    end
+    if control.circuit_read_resources then
+      label = label .. string.format('|{Read Resources|%s}',
+      control.resource_read_mode == defines.control_behavior.mining_drill.resource_read_mode.this_miner and "This Miner" or "Entire Patch"
+      )
+    end
+    return string.format('{%s%s}',
       ent.name,
-      RoboportLabel(control)
+      label
     )
-  elseif ent.type == "logistic-container" then
-    return string.format('{%s|%s}',
-      ent.name,
-      LogisticContainerLabel(control)
-    )
-  elseif ent.type == "container" then
-    return string.format('{%s|%s}',
-      ent.name,
-      "Read Contents"
-    )
+  elseif control.type == 17 then --TODO: ProgrammableSpeaker
+    local label = '{' .. ent.name
+
+    label = label .. '|{Volume|' .. ent.parameters.playback_volume .. '}'
+
+    if ent.parameters.playback_globally or ent.parameters.allow_polyphony then
+      label = label .. '|{'
+
+      if ent.parameters.playback_globally then
+        label = label .. 'Global'
+      end
+      if ent.parameters.allow_polyphony then
+        if ent.parameters.playback_globally then
+          label = label .. '|'
+        end
+        label = label .. 'Polyphony'
+      end
+      label = label .. '}'
+    end
+
+    local instruments = ent.prototype.instruments
+
+    if control.circuit_parameters.signal_value_is_pitch then
+      label = label .. string.format('|{%s|%s}',
+        instruments[control.circuit_parameters.instrument_id+1] and instruments[control.circuit_parameters.instrument_id+1].name or control.circuit_parameters.instrument_id,
+        control.circuit_condition.condition.first_signal and control.circuit_condition.condition.first_signal.name
+      )
+    else
+      label = label .. string.format('|{%s|%s}',
+        instruments[control.circuit_parameters.instrument_id+1] and instruments[control.circuit_parameters.instrument_id+1].name or control.circuit_parameters.instrument_id,
+        instruments[control.circuit_parameters.instrument_id+1] and instruments[control.circuit_parameters.instrument_id+1].notes[control.circuit_parameters.note_id+1] or control.circuit_parameters.note_id
+      )
+      label = label .. '|' .. ConditionLabel(control.circuit_condition.condition)
+    end
+
+    if ent.alert_parameters and ent.alert_parameters.show_alert then
+      label = label .. string.format('|{%s|%s|%s}',
+        ent.alert_parameters.show_on_map and "Alert|On Map" or "Alert",
+        ent.alert_parameters.icon_signal_id and ent.alert_parameters.icon_signal_id.name,
+        ent.alert_parameters.alert_message
+      )
+    end
+    label = label .. '}'
+    return label
   else
-    --TODO: accus don't report the output signal
-    --TODO: rail signals don't report any info
     return string.format('{%s|%s}',
       ent.type,
       ent.name
     )
-
   end
 end
 
@@ -165,7 +246,8 @@ end
 local function GraphCombinators(ents)
   local gv = {
     "graph combinators {",
-    'graph[nodesep=0.5 overlap="prism" splines="spline" sep=0.3];',
+    --'graph[overlap="portho" splines="spline" layout="fdp" sep=0.5];',
+    'graph[overlap="portho" splines="spline" sep=0.5];',
   }
   local donelist = {}
   for _,ent in pairs(ents) do
