@@ -37,11 +37,17 @@ local function InserterLabel(control)
     end
   end
 
-  -- TODO: no way to get "Set stack size" setting/signal
+  local stacklabel = ''
+  if control.circuit_set_stack_size then
+    stacklabel = "|{Set Stack Size|"
+    stacklabel = stacklabel .. (control.circuit_stack_control_signal and control.circuit_stack_control_signal.name)
+    stacklabel = stacklabel ..  "}"
+  end
 
-  return string.format('%s|{Read Hand|%s}',
+  return string.format('%s|{Read Hand|%s}%s',
     condlabel,
-    readlabel
+    readlabel,
+    stacklabel
   )
 end
 
@@ -105,12 +111,12 @@ local function EntityLabel(ent)
       ent.name,
       RoboportLabel(control)
     )
-  elseif control.type == defines.control_behavior.type['train-stop'] then
-    return string.format('{%s|{Send to Train|%s}|{Read from Train|%s}}',
+  elseif control.type == defines.control_behavior.type.train_stop then
+    return string.format('{%s|{Send to Train|%s}|{Read from Train|%s}%s}',
       ent.name,
       control.send_to_train and "On" or "Off",
-      control.read_from_train and "On" or "Off"
-      --TODO: missing condition
+      control.read_from_train and "On" or "Off",
+      control.enable_disable and ('|' .. ConditionLabel(control.circuit_condition.condition)) or ''
     )
   elseif control.type == defines.control_behavior.type.decider_combinator then
     return string.format('<1>\\>|{%s|%s|{%s|%s}}|<2>\\>',
@@ -137,10 +143,18 @@ local function EntityLabel(ent)
       table.concat(CCDataLabels(control),"|")
     )
   elseif control.type == defines.control_behavior.type.transport_belt then
-    return string.format('{%s|%s}',
+    local label = ''
+    if control.enable_disable then
+      label = label .. '|' .. ConditionLabel(control.circuit_condition.condition)
+    end
+    if control.read_contents then
+      label = label .. string.format('|{Read Mode|%s}',
+      control.read_contents_mode == defines.control_behavior.transport_belt.content_read_mode.pulse and "Pulse" or "Hold"
+      )
+    end
+    return string.format('{%s%s}',
       ent.name,
-      ConditionLabel(control.circuit_condition.condition)
-      --TODO: belts don't report read modes
+      label
     )
   elseif control.type == defines.control_behavior.type.accumulator then
     return string.format('{%s|{Read charge level|%s}}',
@@ -149,7 +163,7 @@ local function EntityLabel(ent)
     )
   --elseif control.type == defines.control_behavior.type.rail_signal then
     --TODO: rail signals report nothing...
-  elseif control.type == 15 then --TODO: Wall
+  elseif control.type == defines.control_behavior.type.wall then
     local label = ''
     if control.open_gate then
       label = label .. '|' .. ConditionLabel(control.circuit_condition.condition)
@@ -163,7 +177,7 @@ local function EntityLabel(ent)
       ent.name,
       label
     )
-  elseif control.type == 16 then --TODO: MiningDrill
+  elseif control.type == defines.control_behavior.type.mining_drill then
     local label = ''
     if control.circuit_enable_disable then
       label = label .. '|' .. ConditionLabel(control.circuit_condition.condition)
@@ -177,7 +191,7 @@ local function EntityLabel(ent)
       ent.name,
       label
     )
-  elseif control.type == 17 then --TODO: ProgrammableSpeaker
+  elseif control.type == defines.control_behavior.type.programmable_speaker then
     local label = '{' .. ent.name
 
     label = label .. '|{Volume|' .. ent.parameters.playback_volume .. '}'
