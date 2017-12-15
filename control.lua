@@ -64,6 +64,30 @@ local function RoboportLabel(control)
   end
 end
 
+local function RailSignalLabel(control)
+  local label = ""
+  if control.read_signal then
+    label = string.format('{Red Signal|%s}|{Orange Signal|%s}|{Green Signal|%s}',
+      control.red_signal and control.red_signal.name,
+      control.orange_signal and control.orange_signal.name,
+      control.green_signal and control.green_signal.name
+    )
+  end
+  if control.close_signal then
+    label = label .. ConditionLabel(control.circuit_condition.condition)
+  end
+  return label
+end
+
+local function RailChainSignalLabel(control)
+  return string.format('{Red Signal|%s}|{Orange Signal|%s}|{Green Signal|%s}|{Blue Signal|%s}',
+    control.red_signal and control.red_signal.name,
+    control.orange_signal and control.orange_signal.name,
+    control.green_signal and control.green_signal.name,
+    control.blue_signal and control.blue_signal.name
+  )
+end
+
 local function LogisticContainerLabel(control)
   if control.circuit_mode_of_operation == defines.control_behavior.logistic_container.circuit_mode_of_operation.send_contents then
     return "Read Contents"
@@ -131,9 +155,9 @@ local function EntityLabel(ent)
     if op == "<<" then op = "\\<\\<" end
     return string.format('<1>\\>|{%s|{%s|%s|%s}|%s}|<2>\\>',
       ent.name,
-      control.parameters.parameters.first_signal.name,
+      control.parameters.parameters.first_signal and control.parameters.parameters.first_signal.name or control.parameters.parameters.first_constant,
       op,
-      control.parameters.parameters.second_signal and control.parameters.parameters.second_signal.name or control.parameters.parameters.constant,
+      control.parameters.parameters.second_signal and control.parameters.parameters.second_signal.name or control.parameters.parameters.second_constant,
       control.parameters.parameters.output_signal.name
     )
   elseif control.type == defines.control_behavior.type.constant_combinator then
@@ -161,8 +185,17 @@ local function EntityLabel(ent)
       ent.name,
       control.output_signal and control.output_signal.name
     )
-  --elseif control.type == defines.control_behavior.type.rail_signal then
-    --TODO: rail signals report nothing...
+  elseif control.type == defines.control_behavior.type.rail_signal then
+    return string.format('{%s|%s}',
+      ent.name,
+      RailSignalLabel(control)
+    )
+
+  elseif control.type == defines.control_behavior.type.rail_chain_signal then
+    return string.format('{%s|%s}',
+      ent.name,
+      RailChainSignalLabel(control)
+    )
   elseif control.type == defines.control_behavior.type.wall then
     local label = ''
     if control.open_gate then

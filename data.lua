@@ -4,6 +4,7 @@ data:extend({
     type = "selection-tool",
     name = "combinatorgraph-tool",
     icon = "__combinatorgraph__/combinatorgraph.png",
+    icon_size = 32,
     stack_size = 1,
     subgroup = "terrain",
     order = "d[combinatorgraph-tool]-a[plain]",
