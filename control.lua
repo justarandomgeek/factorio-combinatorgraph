@@ -26,6 +26,7 @@ local function InserterLabel(control)
     condlabel = ConditionLabel(control.circuit_condition.condition)
   elseif control.circuit_mode_of_operation == defines.control_behavior.inserter.circuit_mode_of_operation.set_filters then
     condlabel = "Set Filters"
+    --TODO: note if filters are blacklist
   end
 
   local readlabel = "Off"
@@ -98,6 +99,7 @@ end
 
 local function EntityLabel(ent)
   local control = ent.get_or_create_control_behavior()
+  --TODO: remote.call for mods to register custom output for modded entities's configs
   if not control then
     return string.format('{%s|%s}',
       ent.type,
@@ -140,6 +142,7 @@ local function EntityLabel(ent)
       ent.name,
       control.send_to_train and "On" or "Off",
       control.read_from_train and "On" or "Off",
+      --TODO: train ID
       control.enable_disable and ('|' .. ConditionLabel(control.circuit_condition.condition)) or ''
     )
   elseif control.type == defines.control_behavior.type.decider_combinator then

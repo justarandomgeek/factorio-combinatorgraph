@@ -8,7 +8,6 @@ data:extend({
     stack_size = 1,
     subgroup = "terrain",
     order = "d[combinatorgraph-tool]-a[plain]",
-    flags = {"goes-to-quickbar"},
     selection_color = {r = 0.2, g = 0.8, b = 0.2, a = 0.2},
     alt_selection_color = {r = 0.2, g = 0.8, b = 0.2, a = 0.2},
     selection_mode = {"blueprint"},
